@@ -1,12 +1,14 @@
 /**
  * @desp 搜狐特型广告-扩展广告
- * @ver 0.0.1
+ * @ver 2.0
  * @require sohuFlash1.js
  * @readme:
  *              1,改写了flash调用接口为adextend.open/adextend.close
  *              2,init函数:负责初始化包括DIV,cookie
  *                control函数:处理event事件、控制广告打开和关闭
  *                show和hide函数:打开和隐藏广告,供control调用
+ *             3,加入cookie限制变量trigger_limit
+ *             4,加入注入函数injectInto用于扩展
  */
 window.adextend = (function ($) {
     var defaults = {
@@ -32,10 +34,17 @@ window.adextend = (function ($) {
             },
             $wrap_div: null,
             trigger_limit: 10000,
-            auto: true//判断是否需要自动进入control
+            auto: true,//判断是否需要自动进入control
+            init: null,
+            control: null,
+            show: null,
+            hide:null
     },
     opt,
 	sohuvd = new Cookie(document, "ad_det",24);
+ function injectInto (arg) {                      //注入函数
+     if(typeof (opt[arg]) == 'function') opt[arg]();
+ }
  function loadFlash (flash) {//加载flash
 		 var sohuFlash2 = new sohuFlash(flash.src, flash.name, flash.width, flash.height,"7");
     	sohuFlash2.addParam("quality", "high");
@@ -59,6 +68,7 @@ window.adextend = (function ($) {
  }
  function init (options) {//初始化
      opt = $.extend(true, defaults, options);
+     injectInto("init");             //注入
      opt.$wrap_div.css({//配置容器DIV
          "position": "relative",
          "height": opt.small_flash.height,
@@ -72,6 +82,7 @@ window.adextend = (function ($) {
 	return this;
  }
  function show () {//显示
+     injectInto("show");           //注入
      if(sohuvd.vi < opt.trigger_limit) {//后两次触发播放
          loadFlash(opt.big_flash);
          $("#big_flash").show();
@@ -84,6 +95,7 @@ window.adextend = (function ($) {
 	 return this;
  }
  function hide() {//隐藏
+     injectInto("hide");      //注入
      loadFlash(opt.small_flash);
 	 $("#big_flash").hide().empty();
 	 $("#small_flash").show();
@@ -91,6 +103,7 @@ window.adextend = (function ($) {
 	 return this;
  }
  function control () {//控制
+     injectInto("control");       //注入
 	 if(sohuvd.vi == 0) {
 		show();
 	} else {
@@ -117,6 +130,9 @@ adextend.init({
     big_flash: {
     src: "flash/big_flash.swf",
     click: "http://www.sohu.com"
+    },
+    hide: function () {
+        alert("this is hide callback");
     }
 });
 
